@@ -25,7 +25,7 @@ SECRET_KEY = 'django-insecure-ol9n3oc^rfgd@(5h@y&hq9(53wl82r-6n%el7s^y57$*ajbh*e
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['aligner.uz', '127.0.0.1']
 
 
 # Application definition
