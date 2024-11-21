@@ -1,3 +1,4 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="uz">
 
@@ -7,73 +8,10 @@
     <meta name="google-site-verification" content="9O8PfyVsuurYJEE3pkewVAwI_F1kXWDqcR5-Vl7AswA" />
 
     <title>Gap, Abzas va Iboralar Moslashtirish Dasturi</title>
-    <!-- Google tag (gtag.js) -->
+    <link rel="icon" href="{% static 'images/favicon.ico' %}">
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-EJNWG40NH5"></script>
-    <script>
-        window.dataLayer = window.dataLayer || [];
-        function gtag() { dataLayer.push(arguments); }
-        gtag('js', new Date());
-
-        gtag('config', 'G-EJNWG40NH5');
-    </script>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            background-color: #f4f4f4;
-            padding: 20px;
-        }
-
-        .container {
-            max-width: 900px;
-            margin: 0 auto;
-            background-color: white;
-            padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-        }
-
-        textarea {
-            width: 100%;
-            height: 150px;
-            margin-bottom: 15px;
-            padding: 10px;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-        }
-
-        button {
-            background-color: #28a745;
-            color: white;
-            padding: 10px 15px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-        }
-
-        button:hover {
-            background-color: #218838;
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 20px;
-        }
-
-        th,
-        td {
-            padding: 12px;
-            border: 1px solid #ddd;
-        }
-
-        th {
-            background-color: #f8f9fa;
-        }
-
-        .option-select {
-            margin-bottom: 20px;
-        }
-    </style>
+    <script src="{% static 'gtag.js' %}"></script>
+    <link rel="stylesheet" href="{% static 'style.css' %}">
 </head>
 
 <body>
@@ -111,90 +49,7 @@
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.6.0/jszip.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.4.2/mammoth.browser.min.js"></script>
-    <script>
-        // O'zbekcha fayldan matn yuklash
-        function loadUzbekFile() {
-            const file = document.getElementById('uzbekFileInput').files[0];
-            loadFile(file, 'uzbekText');
-        }
-
-        // Inglizcha fayldan matn yuklash
-        function loadEnglishFile() {
-            const file = document.getElementById('englishFileInput').files[0];
-            loadFile(file, 'englishText');
-        }
-
-        // Faylni o'qish (DOCX yoki TXT)
-        function loadFile(file, elementId) {
-            const reader = new FileReader();
-
-            reader.onload = function (e) {
-                if (file.name.endsWith('.txt')) {
-                    // .txt fayllarni matn sifatida o'qish
-                    document.getElementById(elementId).value = e.target.result;
-                } else if (file.name.endsWith('.docx')) {
-                    // .docx fayllarni ArrayBuffer orqali o'qish
-                    mammoth.extractRawText({ arrayBuffer: e.target.result })
-                        .then(result => document.getElementById(elementId).value = result.value)
-                        .catch(err => console.error("DOCX o'qishda xato:", err));
-                }
-            };
-
-            if (file.name.endsWith('.txt')) {
-                reader.readAsText(file); // .txt faylni to'g'ridan-to'g'ri matn sifatida o'qish
-            } else {
-                reader.readAsArrayBuffer(file); // .docx faylni ArrayBuffer sifatida o'qish
-            }
-        }
-
-
-        async function alignText() {
-            const uzbekText = document.getElementById('uzbekText').value;
-            const englishText = document.getElementById('englishText').value;
-            const alignmentOption = document.getElementById('alignmentOption').value;
-
-            if (!uzbekText || !englishText) {
-                alert("Iltimos, ikkala matnni ham kiriting yoki yuklang.");
-                return;
-            }
-
-            if (alignmentOption === "paragraph") {
-                alignParagraphs(englishText, uzbekText);
-            } else if (alignmentOption === "sentence") {
-                alignSentences(englishText, uzbekText);
-            } else if (alignmentOption === "phrase") {
-                console.log("Bu qism hali tayyor emas");
-            }
-        }
-
-        function alignParagraphs(englishText, uzbekText) {
-            const englishParagraphs = englishText.split('\n').filter(p => p.trim());
-            const uzbekParagraphs = uzbekText.split('\n').filter(p => p.trim());
-
-            displayAlignedText(englishParagraphs, uzbekParagraphs);
-        }
-
-        function alignSentences(englishText, uzbekText) {
-            const englishSentences = englishText.split('.').filter(s => s.trim());
-            const uzbekSentences = uzbekText.split('.').filter(s => s.trim());
-
-            displayAlignedText(englishSentences, uzbekSentences);
-        }
-
-        function displayAlignedText(englishArray, uzbekArray) {
-            const maxLength = Math.max(englishArray.length, uzbekArray.length);
-            const resultTable = document.getElementById('resultTable').getElementsByTagName('tbody')[0];
-            resultTable.innerHTML = '';
-
-            for (let i = 0; i < maxLength; i++) {
-                const row = resultTable.insertRow();
-                const englishCell = row.insertCell(0);
-                const uzbekCell = row.insertCell(1);
-                englishCell.textContent = englishArray[i] || '';
-                uzbekCell.textContent = uzbekArray[i] || '';
-            }
-        }
-    </script>
+    <script src="{% static 'index.js' %}"></script>
 </body>
 
 </html>
