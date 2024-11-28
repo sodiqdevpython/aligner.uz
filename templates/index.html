@@ -5,44 +5,43 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="google-site-verification" content="9O8PfyVsuurYJEE3pkewVAwI_F1kXWDqcR5-Vl7AswA" />
-
-    <title>O'zbek-ingliz "Aligner" dasturi</title>
-    <link rel="icon" href="{% static 'images/favicon.ico' %}">
-    <script async src="https://www.googletagmanager.com/gtag/js?id=G-EJNWG40NH5"></script>
-    <script src="{% static 'gtag.js' %}"></script>
-    <link rel="stylesheet" href="{% static 'style.css' %}">
+    <title>O'zbek-Ingliz "Aligner" Dasturi</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css">
     <style>
         body {
+            background-color: #f9f9f9;
             font-family: Arial, sans-serif;
-            background-color: #f4f4f4;
-            padding: 20px;
         }
 
         .container {
             max-width: 900px;
-            margin: 0 auto;
-            background-color: white;
+            margin: 50px auto;
             padding: 20px;
+            background-color: #fff;
             border-radius: 10px;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
         }
 
         textarea {
             width: 100%;
             height: 150px;
-            margin-bottom: 15px;
+            margin-top: 10px;
             padding: 10px;
             border: 1px solid #ccc;
-            border-radius: 4px;
+            border-radius: 5px;
+        }
+
+        .form-label {
+            font-weight: bold;
         }
 
         button {
+            width: 100%;
             background-color: #28a745;
             color: white;
-            padding: 10px 15px;
+            padding: 10px;
             border: none;
-            border-radius: 4px;
+            border-radius: 5px;
             cursor: pointer;
         }
 
@@ -52,62 +51,139 @@
 
         table {
             width: 100%;
-            border-collapse: collapse;
             margin-top: 20px;
+            border-collapse: collapse;
         }
 
-        th,
-        td {
-            padding: 12px;
+        th, td {
+            padding: 10px;
+            text-align: left;
             border: 1px solid #ddd;
         }
 
         th {
-            background-color: #f8f9fa;
+            background-color: #f2f2f2;
         }
 
-        .option-select {
-            margin-bottom: 20px;
+        .file-input {
+            margin-top: 20px;
+        }
+
+        .result-title {
+            text-align: center;
+            margin-top: 30px;
         }
     </style>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.4.2/mammoth.browser.min.js"></script>
 </head>
 
 <body>
     <div class="container">
-        <h1 style="text-align: center;">O'zbek-ingliz "Aligner" dasturi</h1>
+        <h1 class="text-center">O'zbek-Ingliz "Aligner" Dasturi</h1>
+        <p class="text-center text-muted">Fayllar yoki matnlarni kiritib, natijalarni tekshiring</p>
 
-        <input type="file" id="uzbekFileInput" accept=".txt,.docx" onchange="loadUzbekFile()">
-        <textarea id="uzbekText" placeholder="O'zbekcha matnni kiriting..."></textarea>
-
-        <input type="file" id="englishFileInput" accept=".txt,.docx" onchange="loadEnglishFile()">
-        <textarea id="englishText" placeholder="Inglizcha matnni kiriting..."></textarea>
-
-        <div class="option-select">
-            <label for="alignmentOption">Tanlovingizni qiling:</label>
-            <select id="alignmentOption">
-                <option value="paragraph">Abzas moslashtirish</option>
-                <option value="sentence">Gap moslashtirish</option>
-                <option value="phrase">Iboralar moslashtirish</option>
-            </select>
+        <!-- Inglizcha matn -->
+        <div>
+            <label class="form-label" for="englishFileInput">Inglizcha fayl yuklash:</label>
+            <input type="file" class="form-control file-input" id="englishFileInput" accept=".txt,.docx" onchange="loadFile('englishFileInput', 'englishText')">
+            <textarea id="englishText" placeholder="Inglizcha matnni kiriting..."></textarea>
         </div>
 
-        <button onclick="alignText()">Moslashtirish</button>
+        <!-- O'zbekcha matn -->
+        <div>
+            <label class="form-label" for="uzbekFileInput">O'zbekcha fayl yuklash:</label>
+            <input type="file" class="form-control file-input" id="uzbekFileInput" accept=".txt,.docx" onchange="loadFile('uzbekFileInput', 'uzbekText')">
+            <textarea id="uzbekText" placeholder="O'zbekcha matnni kiriting..."></textarea>
+        </div>
 
-        <table id="resultTable">
+        <!-- Moslashtirish tugmasi -->
+        <button id="alignButton">Moslashtirish</button>
+
+        <!-- Natijalar jadvali -->
+        <h2 class="result-title">Natijalar</h2>
+        <table id="resultsTable" class="table table-striped">
             <thead>
                 <tr>
                     <th>Inglizcha</th>
                     <th>O'zbekcha</th>
                 </tr>
             </thead>
-            <tbody>
-            </tbody>
+            <tbody></tbody>
         </table>
     </div>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.6.0/jszip.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.4.2/mammoth.browser.min.js"></script>
-    <script src="{% static 'index.js' %}"></script>
+    <script>
+        // Fayldan matn yuklash
+        function loadFile(fileInputId, textAreaId) {
+            const fileInput = document.getElementById(fileInputId);
+            const textArea = document.getElementById(textAreaId);
+            const file = fileInput.files[0];
+            const reader = new FileReader();
+
+            if (file.name.endsWith('.txt')) {
+                reader.onload = function (e) {
+                    textArea.value = e.target.result;
+                };
+                reader.readAsText(file);
+            } else if (file.name.endsWith('.docx')) {
+                reader.onload = function (e) {
+                    const arrayBuffer = e.target.result;
+                    mammoth.extractRawText({ arrayBuffer: arrayBuffer }).then(function (result) {
+                        textArea.value = result.value;
+                    });
+                };
+                reader.readAsArrayBuffer(file);
+            } else {
+                alert('Faqat .txt yoki .docx fayllar qabul qilinadi.');
+            }
+        }
+
+        // Ajax orqali moslashtirish
+        $(document).ready(function () {
+            $('#alignButton').click(function () {
+                const englishText = $('#englishText').val();
+                const uzbekText = $('#uzbekText').val();
+                const englishSentences = splitSentences(englishText);
+                const uzbekSentences = splitSentences(uzbekText);
+
+
+                $('#resultsTable tbody').empty(); // Natijalarni tozalash
+
+                englishSentences.forEach((sentence, index) => {
+                    const data = {
+                        english_sentence: sentence.trim(),
+                        uzbek_sentence: uzbekSentences[index].trim(),
+                        csrfmiddlewaretoken: $('input[name=csrfmiddlewaretoken]').val(),
+                    };
+
+                    $.ajax({
+                        type: 'POST',
+                        url: '{% url "check_single_sentence" %}',
+                        data: data,
+                        success: function (response) {
+                            $('#resultsTable tbody').append(`
+                                <tr>
+                                    <td>${response.english}</td>
+                                    <td>${response.uzbek}</td>
+                                </tr>
+                            `);
+                        },
+                        error: function () {
+                            alert('Xatolik yuz berdi.');
+                        }
+                    });
+                });
+            });
+        });
+
+        // Matnni gaplarga bo‘lish
+        function splitSentences(text) {
+            text = text.replace(/(?<!\w)(e\.g\.|i\.e\.)/g, match => match.replace('.', '[DOT]'));
+            const sentences = text.split(/(?<!\w\.\w.)(?<![A-Z][a-z]\.)(?<=\.|\?|\!)\s/).map(sentence => sentence.replace('[DOT]', '.').trim());
+            return sentences.filter(sentence => sentence.length > 0);
+        }
+    </script>
 </body>
 
 </html>
