@@ -78,6 +78,10 @@
             text-align: center;
             margin-top: 30px;
         }
+
+        .alignment-select {
+            margin: 20px 0;
+        }
     </style>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.4.2/mammoth.browser.min.js"></script>
@@ -100,6 +104,15 @@
             <label class="form-label" for="uzbekFileInput">O'zbekcha fayl yuklash:</label>
             <input type="file" class="form-control file-input" id="uzbekFileInput" accept=".txt,.docx" onchange="loadFile('uzbekFileInput', 'uzbekText')">
             <textarea id="uzbekText" placeholder="O'zbekcha matnni kiriting..."></textarea>
+        </div>
+
+        <!-- Gap bo'yicha yoki Abzast bo'yicha tanlash (select) -->
+        <div class="alignment-select">
+            <label for="alignmentType" class="form-label">Moslashtirish turi:</label>
+            <select id="alignmentType" class="form-select">
+                <option value="sentence" selected>Gap bo'yicha</option>
+                <option value="paragraph">Abzast bo'yicha</option>
+            </select>
         </div>
 
         <!-- Moslashtirish tugmasi -->
@@ -126,6 +139,10 @@
             const file = fileInput.files[0];
             const reader = new FileReader();
 
+            if (!file) {
+                return;
+            }
+
             if (file.name.endsWith('.txt')) {
                 reader.onload = function (e) {
                     textArea.value = e.target.result;
@@ -144,21 +161,63 @@
             }
         }
 
+        // Matnni gaplarga bo‘lish
+        function splitSentences(text) {
+            // Ba'zi abbreviaturalar xato bo'linmasligi uchun kichik regex qo'ldan foydalanish
+            text = text.replace(/(?<!\w)(e\.g\.|i\.e\.)/g, match => match.replace('.', '[DOT]'));
+
+            // Nuqta, so'roq yoki undovdan keyingi bo'shliq (yoki satr oxiri)
+            const sentences = text.split(/(?<!\w\.\w.)(?<![A-Z][a-z]\.)(?<=\.|\?|\!)\s/).map(sentence => {
+                return sentence.replace('[DOT]', '.').trim();
+            });
+
+            // Bo‘sh bo‘lib qolgan bo‘limlarni olib tashlash
+            return sentences.filter(sentence => sentence.length > 0);
+        }
+
+        // Matnni abzastlarga bo‘lish (har bir satr yoki bo‘sh satr bo‘yicha)
+        function splitParagraphs(text) {
+            // Eng oddiy holatda – bo‘sh qatordan yoki 2 ta newline'dan bo‘lish
+            // Agar matnda alohida qatorlarga bo‘lingan bo‘lsa, shunchaki `split('\n')` ham ishlashi mumkin
+            let paragraphs = text.split(/\n\s*\n/); 
+            paragraphs = paragraphs.map(p => p.trim()).filter(p => p.length > 0);
+            return paragraphs;
+        }
+
         // Ajax orqali moslashtirish
         $(document).ready(function () {
             $('#alignButton').click(function () {
                 const englishText = $('#englishText').val();
                 const uzbekText = $('#uzbekText').val();
-                const englishSentences = splitSentences(englishText);
-                const uzbekSentences = splitSentences(uzbekText);
+                const alignmentType = $('#alignmentType').val(); // 'sentence' yoki 'paragraph'
 
+                let englishParts = [];
+                let uzbekParts = [];
+
+                // Checkbox yoki select tanloviga qarab bo'linadi
+                if (alignmentType === 'paragraph') {
+                    englishParts = splitParagraphs(englishText);
+                    uzbekParts = splitParagraphs(uzbekText);
+                } else {
+                    // Default: sentence
+                    englishParts = splitSentences(englishText);
+                    uzbekParts = splitSentences(uzbekText);
+                }
+
+                // Uzunliklar teng bo'lishini tekshirish
+                if (englishParts.length !== uzbekParts.length) {
+                    alert("Eslatma: Inglizcha va O'zbekcha bo'linmagan qismlar soni teng emas! Iltimos, tekshiring.");
+                    return;
+                }
 
                 $('#resultsTable tbody').empty(); // Natijalarni tozalash
 
-                englishSentences.forEach((sentence, index) => {
+                // Har bir bo'lim (gap/abzast) bo'yicha so'rov yuborish
+                englishParts.forEach((enSentence, index) => {
                     const data = {
-                        english_sentence: sentence.trim(),
-                        uzbek_sentence: uzbekSentences[index].trim(),
+                        english_sentence: enSentence.trim(),
+                        uzbek_sentence: uzbekParts[index].trim(),
+                        alignment_type: alignmentType, // Serverga xabar berish uchun
                         csrfmiddlewaretoken: $('input[name=csrfmiddlewaretoken]').val(),
                     };
 
@@ -182,51 +241,43 @@
             });
         });
 
-        // Matnni gaplarga bo‘lish
-        function splitSentences(text) {
-            text = text.replace(/(?<!\w)(e\.g\.|i\.e\.)/g, match => match.replace('.', '[DOT]'));
-            const sentences = text.split(/(?<!\w\.\w.)(?<![A-Z][a-z]\.)(?<=\.|\?|\!)\s/).map(sentence => sentence.replace('[DOT]', '.').trim());
-            return sentences.filter(sentence => sentence.length > 0);
-        }
+        // Klaviatura va sichqoncha bloklari – xohlasangiz o'zgartirmasdan qoldirishingiz mumkin
+        document.addEventListener('keydown', function (e) {
+            // Ctrl+Shift+I
+            if (e.ctrlKey && e.shiftKey && e.key === 'I') {
+                e.preventDefault();
+                alert("Developer Tools ni ochish cheklangan!");
+            }
 
-        
-document.addEventListener('keydown', function (e) {
-    // Ctrl+Shift+I uchun
-    if (e.ctrlKey && e.shiftKey && e.key === 'I') {
-        e.preventDefault();
-        alert("Developer Tools ni ochish cheklangan!");
-    }
+            // F12
+            if (e.key === 'F12') {
+                e.preventDefault();
+                alert("Developer Tools ni ochish cheklangan!");
+            }
 
-    // F12 uchun
-    if (e.key === 'F12') {
-        e.preventDefault();
-        alert("Developer Tools ni ochish cheklangan!");
-    }
+            // Ctrl+U
+            if (e.ctrlKey && e.key === 'u') {
+                e.preventDefault();
+                alert("Ushbu sahifaning kodini ko‘rish cheklangan!");
+            }
 
-    // Ctrl+U uchun
-    if (e.ctrlKey && e.key === 'u') {
-        e.preventDefault();
-        alert("ushbu sahifaning kodini ko‘rish cheklangan!");
-    }
+            // Ctrl+Shift+J (Console)
+            if (e.ctrlKey && e.shiftKey && e.key === 'J') {
+                e.preventDefault();
+                alert("Developer Tools ni ochish cheklangan!");
+            }
 
-    // Ctrl+Shift+J (Console) uchun
-    if (e.ctrlKey && e.shiftKey && e.key === 'J') {
-        e.preventDefault();
-        alert("Developer Tools ni ochish cheklangan!");
-    }
+            // Ctrl+Shift+C (Element Inspect)
+            if (e.ctrlKey && e.shiftKey && e.key === 'C') {
+                e.preventDefault();
+                alert("Developer Tools ni ochish cheklangan!");
+            }
+        });
 
-    // Ctrl+Shift+C (Element Inspect) uchun
-    if (e.ctrlKey && e.shiftKey && e.key === 'C') {
-        e.preventDefault();
-        alert("Developer Tools ni ochish cheklangan!");
-    }
-});
-
-// Sichqoncha o'ng tugmasini bloklash
-document.addEventListener('contextmenu', function (e) {
-    e.preventDefault();
-    alert("Manba kodini ko‘rish cheklangan!");
-});
+        document.addEventListener('contextmenu', function (e) {
+            e.preventDefault();
+            alert("Manba kodini ko‘rish cheklangan!");
+        });
     </script>
 </body>
 
