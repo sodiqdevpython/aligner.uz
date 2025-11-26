@@ -1,72 +1,109 @@
+import json
+import openai
+import re
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
+from .utils import get_least_used_token
 from django.shortcuts import render
 
-from fuzzywuzzy import fuzz
-from .models import Translation, AlignerSetting
 
 def align_texts(request):
     return render(request, 'index.html')
 
+# @csrf_exempt
+# def gpt_align(request):
+#     if request.method != "POST":
+#         return JsonResponse({"error": "Only POST allowed"})
+
+#     english = request.POST.get("english", "")
+#     uzbek = request.POST.get("uzbek", "")
+
+#     # 1) Eng kam ishlatilgan tokenni olish
+#     token_obj = get_least_used_token()
+#     if not token_obj:
+#         return JsonResponse({"error": "No active API tokens available"}, status=500)
+
+#     openai.api_key = token_obj.token
+
+#     # 2) Prompt yaratish
+#     prompt = f"""
+# You are an AI alignment assistant. Your task is to compare an English sentence with its Uzbek translation and determine whether they match in meaning.
+
+# ### Input:
+# - English sentence: "{english}"
+# - Uzbek sentence: "{uzbek}"
+
+# Analyze deeply and return ONLY valid JSON in the structure below:
+
+# {{
+#   "english": "<corrected or cleaned>",
+#   "uzbek": "<corrected or cleaned>",
+#   "is_match": true,
+#   "similarity_score": 0,
+#   "comment": "<short explanation>"
+# }}
+#     """
+
+#     # 3) Modelni chaqirish
+#     try:
+#         response = openai.chat.completions.create(
+#             model="gpt-4o-mini",
+#             messages=[{"role": "user", "content": prompt}],
+#             temperature=0.1,
+#             max_tokens=2000,
+#         )
+#         content = response.choices[0].message["content"]
+
+#         # 4) usage_count +1
+#         token_obj.usage_count += 1
+#         token_obj.save()
+
+#         # 5) JSON sifatida qaytarish
+#         return JsonResponse({"result": content})
+
+#     except Exception as e:
+#         return JsonResponse({"error": str(e)}, status=500)
+
+
+def cleanup_json(text):
+    # Remove markdown fences
+    text = re.sub(r"```json", "", text, flags=re.IGNORECASE)
+    text = re.sub(r"```", "", text)
+    return text.strip()
+
 
 @csrf_exempt
-def check_single_sentence(request):
-    """
-    Har bir gap yoki abzast (front-enddan alignment_type bilan keladi).
-    admin panelidagi AlignerSetting.use_db ga qarab:
-      True  -> DB bilan fuzzy taqqoslash
-      False -> oddiy (algoritmik) yo'l
-    """
-    if request.method == 'POST':
-        alignment_type = request.POST.get('alignment_type', 'sentence')
-        english_sentence = request.POST.get('english_sentence', '').strip()
-        uzbek_sentence = request.POST.get('uzbek_sentence', '').strip()
+def gpt_align(request):
+    if request.method != "POST":
+        return JsonResponse({"error": "Only POST allowed"}, status=400)
 
-        # Admin sozlamasini olish:
-        config = AlignerSetting.objects.first()  # Faqat bitta yozuv bor deb faraz qilamiz
-        use_db = config.use_db if config else False  # Agar sozlama topilmasa default False
+    english = request.POST.get("english", "")
+    uzbek = request.POST.get("uzbek", "")
+    prompt = request.POST.get("prompt", "")
 
-        if use_db:
-            # 1) DB bilan Fuzzy taqqoslash
-            translations = Translation.objects.all()
-            best_match_en = None
-            best_score_en = 0
-            best_match_uz = None
-            best_score_uz = 0
+    # Token selection
+    token_obj = get_least_used_token()
+    if not token_obj:
+        return JsonResponse({"error": "No active tokens"}, status=500)
 
-            for tr in translations:
-                score_en = fuzz.ratio(english_sentence.lower(), tr.english_text.lower())
-                if score_en > best_score_en:
-                    best_match_en = tr
-                    best_score_en = score_en
+    openai.api_key = token_obj.token
 
-            for tr in translations:
-                score_uz = fuzz.ratio(uzbek_sentence.lower(), tr.uzbek_text.lower())
-                if score_uz > best_score_uz:
-                    best_match_uz = tr
-                    best_score_uz = score_uz
+    try:
+        response = openai.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.2
+        )
 
-            # 2) 90% dan yuqori bo‘lsa "mos"
-            if best_score_en >= 90 and best_score_uz >= 90:
-                response = {
-                    'english': best_match_en.english_text,
-                    'uzbek': best_match_uz.uzbek_text
-                }
-            else:
-                response = {
-                    'english': english_sentence,
-                    'uzbek': 'Moslik bajarilmadi'
-                }
+        raw = response.choices[0].message.content
 
-        else:
-            # use_db = False bo'lsa, bazaga murojaat qilmaymiz.
-            # Oddiy "algoritmik" deya, shunchaki kirib kelgan matnni
-            # juftlik sifatida qaytaramiz (yoki xohlagan yana biror texnikangiz bo'lsa, o'sha).
-            response = {
-                'english': english_sentence,
-                'uzbek': uzbek_sentence
-            }
+        cleaned = cleanup_json(raw)
 
-        return JsonResponse(response)
+        # Update usage
+        token_obj.usage_count += 1
+        token_obj.save()
 
-    return JsonResponse({'error': 'Faqat POST so‘rovlari qabul qilinadi.'})
+        return JsonResponse({"result": cleaned})
+
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)

@@ -1,7 +1,8 @@
+# urls.py
 from django.urls import path
-from . import views
+from .views import gpt_align, align_texts
 
 urlpatterns = [
-    path('', views.align_texts, name='align_texts'),  # Matnlarni kiritish interfeysi
-    path('check-single-sentence/', views.check_single_sentence, name='check_single_sentence'),  # Har bir gapni tekshirish
+    path('', align_texts, name='align_texts'),
+    path('gpt-align/', gpt_align, name='gpt_align'),
 ]

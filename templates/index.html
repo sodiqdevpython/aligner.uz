@@ -1,284 +1,238 @@
 {% load static %}
 <!DOCTYPE html>
 <html lang="uz">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>O'zbek-Ingliz Aligner — GPT bilan moslashtirish</title>
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="google-site-verification" content="9O8PfyVsuurYJEE3pkewVAwI_F1kXWDqcR5-Vl7AswA" />
-    <link rel="icon" href="{% static 'images/favicon.ico' %}">
-    <script async src="https://www.googletagmanager.com/gtag/js?id=G-EJNWG40NH5"></script>
-    <script src="{% static 'gtag.js' %}"></script>
-    <link rel="stylesheet" href="{% static 'style.css' %}">
-    <title>O'zbek-Ingliz "Aligner" Dasturi</title>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css">
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+    />
+
     <style>
-        body {
-            background-color: #f9f9f9;
-            font-family: Arial, sans-serif;
-        }
+      body {
+        background-color: #f9f9f9;
+        font-family: Arial, sans-serif;
+      }
 
-        .container {
-            max-width: 900px;
-            margin: 50px auto;
-            padding: 20px;
-            background-color: #fff;
-            border-radius: 10px;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-        }
+      .container {
+        max-width: 950px;
+        margin: 40px auto;
+        background: #fff;
+        padding: 25px;
+        border-radius: 10px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      }
 
-        textarea {
-            width: 100%;
-            height: 150px;
-            margin-top: 10px;
-            padding: 10px;
-            border: 1px solid #ccc;
-            border-radius: 5px;
-        }
+      textarea {
+        height: 150px;
+      }
 
-        .form-label {
-            font-weight: bold;
-        }
+      .match {
+        background-color: #d4edda !important;
+      }
 
-        button {
-            width: 100%;
-            background-color: #28a745;
-            color: white;
-            padding: 10px;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-        }
+      .nomatch {
+        background-color: #f8d7da !important;
+      }
 
-        button:hover {
-            background-color: #218838;
-        }
-
-        table {
-            width: 100%;
-            margin-top: 20px;
-            border-collapse: collapse;
-        }
-
-        th, td {
-            padding: 10px;
-            text-align: left;
-            border: 1px solid #ddd;
-        }
-
-        th {
-            background-color: #f2f2f2;
-        }
-
-        .file-input {
-            margin-top: 20px;
-        }
-
-        .result-title {
-            text-align: center;
-            margin-top: 30px;
-        }
-
-        .alignment-select {
-            margin: 20px 0;
-        }
+      .loading {
+        text-align: center;
+        font-size: 18px;
+        padding: 10px;
+      }
     </style>
+
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.4.2/mammoth.browser.min.js"></script>
-</head>
+  </head>
 
-<body>
+  <body>
     <div class="container">
-        <h1 class="text-center">O'zbek-Ingliz "Aligner" Dasturi</h1>
-        <p class="text-center text-muted">Fayllar yoki matnlarni kiritib, natijalarni tekshiring</p>
+      <h2 class="text-center mb-3">GPT asosidagi O'zbek-Ingliz Aligner</h2>
+      <p class="text-center text-muted">
+        Gap yoki abzast bo‘yicha moslikni tekshirib beradi
+      </p>
 
-        <!-- Inglizcha matn -->
-        <div>
-            <label class="form-label" for="englishFileInput">Inglizcha fayl yuklash:</label>
-            <input type="file" class="form-control file-input" id="englishFileInput" accept=".txt,.docx" onchange="loadFile('englishFileInput', 'englishText')">
-            <textarea id="englishText" placeholder="Inglizcha matnni kiriting..."></textarea>
-        </div>
+      <!-- English -->
+      <label class="form-label fw-bold">Inglizcha fayl:</label>
+      <input
+        type="file"
+        class="form-control"
+        id="englishFileInput"
+        accept=".txt,.docx"
+        onchange="loadFile('englishFileInput','englishText')"
+      />
+      <textarea
+        id="englishText"
+        class="form-control mt-2"
+        placeholder="Inglizcha matn..."
+      ></textarea>
 
-        <!-- O'zbekcha matn -->
-        <div>
-            <label class="form-label" for="uzbekFileInput">O'zbekcha fayl yuklash:</label>
-            <input type="file" class="form-control file-input" id="uzbekFileInput" accept=".txt,.docx" onchange="loadFile('uzbekFileInput', 'uzbekText')">
-            <textarea id="uzbekText" placeholder="O'zbekcha matnni kiriting..."></textarea>
-        </div>
+      <!-- Uzbek -->
+      <label class="form-label fw-bold mt-3">O'zbekcha fayl:</label>
+      <input
+        type="file"
+        class="form-control"
+        id="uzbekFileInput"
+        accept=".txt,.docx"
+        onchange="loadFile('uzbekFileInput','uzbekText')"
+      />
+      <textarea
+        id="uzbekText"
+        class="form-control mt-2"
+        placeholder="O'zbekcha matn..."
+      ></textarea>
 
-        <!-- Gap bo'yicha yoki Abzast bo'yicha tanlash (select) -->
-        <div class="alignment-select">
-            <label for="alignmentType" class="form-label">Moslashtirish turi:</label>
-            <select id="alignmentType" class="form-select">
-                <option value="sentence" selected>Gap bo'yicha</option>
-                <option value="paragraph">Abzast bo'yicha</option>
-            </select>
-        </div>
+      <!-- Mode -->
+      <label class="form-label fw-bold mt-3">Moslashtirish turi:</label>
+      <select id="alignmentType" class="form-select">
+        <option value="sentence">Gap bo'yicha</option>
+        <option value="paragraph">Abzast bo'yicha</option>
+      </select>
 
-        <!-- Moslashtirish tugmasi -->
-        <button id="alignButton">Moslashtirish</button>
+      <button id="alignButton" class="btn btn-success btn-lg mt-3">
+        Moslashtirish
+      </button>
 
-        <!-- Natijalar jadvali -->
-        <h2 class="result-title">Natijalar</h2>
-        <table id="resultsTable" class="table table-striped">
-            <thead>
-                <tr>
-                    <th>Inglizcha</th>
-                    <th>O'zbekcha</th>
-                </tr>
-            </thead>
-            <tbody></tbody>
-        </table>
+      <h3 class="text-center mt-4">Natijalar</h3>
+      <table class="table table-bordered mt-3">
+        <thead>
+          <tr>
+            <th width="50%">Ingliz</th>
+            <th width="50%">O'zbek</th>
+          </tr>
+        </thead>
+        <tbody id="resultsTable"></tbody>
+      </table>
     </div>
 
     <script>
-        // Fayldan matn yuklash
-        function loadFile(fileInputId, textAreaId) {
-            const fileInput = document.getElementById(fileInputId);
-            const textArea = document.getElementById(textAreaId);
-            const file = fileInput.files[0];
-            const reader = new FileReader();
+      /* ===== File loader ===== */
+      function loadFile(fileInputId, outputId) {
+        const file = document.getElementById(fileInputId).files[0]
+        const reader = new FileReader()
+        const output = document.getElementById(outputId)
 
-            if (!file) {
-                return;
-            }
+        if (!file) return
 
-            if (file.name.endsWith('.txt')) {
-                reader.onload = function (e) {
-                    textArea.value = e.target.result;
-                };
-                reader.readAsText(file);
-            } else if (file.name.endsWith('.docx')) {
-                reader.onload = function (e) {
-                    const arrayBuffer = e.target.result;
-                    mammoth.extractRawText({ arrayBuffer: arrayBuffer }).then(function (result) {
-                        textArea.value = result.value;
-                    });
-                };
-                reader.readAsArrayBuffer(file);
-            } else {
-                alert('Faqat .txt yoki .docx fayllar qabul qilinadi.');
+        if (file.name.endsWith('.txt')) {
+          reader.onload = (e) => (output.value = e.target.result)
+          reader.readAsText(file)
+        } else if (file.name.endsWith('.docx')) {
+          reader.onload = (e) =>
+            mammoth
+              .extractRawText({ arrayBuffer: e.target.result })
+              .then((result) => (output.value = result.value))
+          reader.readAsArrayBuffer(file)
+        }
+      }
+
+      /* ===== Sentence splitter ===== */
+      function splitSentences(text) {
+        return text.split(/(?<=\.|\!|\?)\s+/).filter((t) => t.trim().length > 0)
+      }
+
+      function splitParagraphs(text) {
+        return text.split(/\n\s*\n/).filter((t) => t.trim().length > 0)
+      }
+
+      /* ===== GPT Proxy Call ===== */
+      function askGPT(english, uzbek) {
+        const prompt = `
+You are a bilingual Uzbek-English alignment expert. Compare the following:
+
+English: "${english}"
+Uzbek: "${uzbek}"
+
+Your task:
+1. Analyze semantic similarity.
+2. Determine if they match in meaning.
+3. Rate similarity 0–100.
+4. If mismatch, explain why.
+
+Respond ONLY in valid JSON:
+
+{
+  "english": "<clean English>",
+  "uzbek": "<clean Uzbek>",
+  "is_match": true/false,
+  "similarity_score": 0-100,
+  "comment": "<short explanation>"
+}
+        `
+
+        const formData = new FormData()
+        formData.append('english', english)
+        formData.append('uzbek', uzbek)
+        formData.append('prompt', prompt)
+
+        return fetch('/gpt-align/', {
+          method: 'POST',
+          body: formData,
+        })
+          .then((res) => res.json())
+          .then((data) => {
+            if (data.error) {
+              console.error(data.error)
+              alert('GPT xato qaytardi: ' + data.error)
+              return null
             }
+            return JSON.parse(data.result)
+          })
+      }
+
+      /* ===== Main function ===== */
+      $('#alignButton').click(async function () {
+        const englishText = $('#englishText').val()
+        const uzbekText = $('#uzbekText').val()
+        const type = $('#alignmentType').val()
+
+        if (!englishText || !uzbekText) {
+          alert('Matnlar bo‘sh bo‘lmasligi kerak!')
+          return
         }
 
-        // Matnni gaplarga bo‘lish
-        function splitSentences(text) {
-            // Ba'zi abbreviaturalar xato bo'linmasligi uchun kichik regex qo'ldan foydalanish
-            text = text.replace(/(?<!\w)(e\.g\.|i\.e\.)/g, match => match.replace('.', '[DOT]'));
+        let englishParts =
+          type === 'sentence'
+            ? splitSentences(englishText)
+            : splitParagraphs(englishText)
+        let uzbekParts =
+          type === 'sentence'
+            ? splitSentences(uzbekText)
+            : splitParagraphs(uzbekText)
 
-            // Nuqta, so'roq yoki undovdan keyingi bo'shliq (yoki satr oxiri)
-            const sentences = text.split(/(?<!\w\.\w.)(?<![A-Z][a-z]\.)(?<=\.|\?|\!)\s/).map(sentence => {
-                return sentence.replace('[DOT]', '.').trim();
-            });
-
-            // Bo‘sh bo‘lib qolgan bo‘limlarni olib tashlash
-            return sentences.filter(sentence => sentence.length > 0);
+        if (englishParts.length !== uzbekParts.length) {
+          alert("Inglizcha va O'zbekcha segmentlar soni teng emas!")
+          return
         }
 
-        // Matnni abzastlarga bo‘lish (har bir satr yoki bo‘sh satr bo‘yicha)
-        function splitParagraphs(text) {
-            // Eng oddiy holatda – bo‘sh qatordan yoki 2 ta newline'dan bo‘lish
-            // Agar matnda alohida qatorlarga bo‘lingan bo‘lsa, shunchaki `split('\n')` ham ishlashi mumkin
-            let paragraphs = text.split(/\n\s*\n/); 
-            paragraphs = paragraphs.map(p => p.trim()).filter(p => p.length > 0);
-            return paragraphs;
+        $('#resultsTable').empty()
+        $('#loading').removeClass('d-none')
+
+        for (let i = 0; i < englishParts.length; i++) {
+          let result = await askGPT(englishParts[i], uzbekParts[i])
+
+          let cssClass = result.is_match ? 'match' : 'nomatch'
+
+          $('#resultsTable').append(`
+                <tr class="${cssClass}">
+                    <td>
+                        <b>${result.english}</b>
+                        <br><small>Score: ${result.similarity_score}%</small>
+                    </td>
+                    <td>
+                        ${result.uzbek}
+                        <br><small>${result.comment}</small>
+                    </td>
+                </tr>
+            `)
         }
 
-        // Ajax orqali moslashtirish
-        $(document).ready(function () {
-            $('#alignButton').click(function () {
-                const englishText = $('#englishText').val();
-                const uzbekText = $('#uzbekText').val();
-                const alignmentType = $('#alignmentType').val(); // 'sentence' yoki 'paragraph'
-
-                let englishParts = [];
-                let uzbekParts = [];
-
-                // Checkbox yoki select tanloviga qarab bo'linadi
-                if (alignmentType === 'paragraph') {
-                    englishParts = splitParagraphs(englishText);
-                    uzbekParts = splitParagraphs(uzbekText);
-                } else {
-                    // Default: sentence
-                    englishParts = splitSentences(englishText);
-                    uzbekParts = splitSentences(uzbekText);
-                }
-
-                // Uzunliklar teng bo'lishini tekshirish
-                if (englishParts.length !== uzbekParts.length) {
-                    alert("Eslatma: Inglizcha va O'zbekcha bo'linmagan qismlar soni teng emas! Iltimos, tekshiring.");
-                    return;
-                }
-
-                $('#resultsTable tbody').empty(); // Natijalarni tozalash
-
-                // Har bir bo'lim (gap/abzast) bo'yicha so'rov yuborish
-                englishParts.forEach((enSentence, index) => {
-                    const data = {
-                        english_sentence: enSentence.trim(),
-                        uzbek_sentence: uzbekParts[index].trim(),
-                        alignment_type: alignmentType, // Serverga xabar berish uchun
-                        csrfmiddlewaretoken: $('input[name=csrfmiddlewaretoken]').val(),
-                    };
-
-                    $.ajax({
-                        type: 'POST',
-                        url: '{% url "check_single_sentence" %}',
-                        data: data,
-                        success: function (response) {
-                            $('#resultsTable tbody').append(`
-                                <tr>
-                                    <td>${response.english}</td>
-                                    <td>${response.uzbek}</td>
-                                </tr>
-                            `);
-                        },
-                        error: function () {
-                            alert('Xatolik yuz berdi.');
-                        }
-                    });
-                });
-            });
-        });
-
-        // Klaviatura va sichqoncha bloklari – xohlasangiz o'zgartirmasdan qoldirishingiz mumkin
-        document.addEventListener('keydown', function (e) {
-            // Ctrl+Shift+I
-            if (e.ctrlKey && e.shiftKey && e.key === 'I') {
-                e.preventDefault();
-                alert("Developer Tools ni ochish cheklangan!");
-            }
-
-            // F12
-            if (e.key === 'F12') {
-                e.preventDefault();
-                alert("Developer Tools ni ochish cheklangan!");
-            }
-
-            // Ctrl+U
-            if (e.ctrlKey && e.key === 'u') {
-                e.preventDefault();
-                alert("Ushbu sahifaning kodini ko‘rish cheklangan!");
-            }
-
-            // Ctrl+Shift+J (Console)
-            if (e.ctrlKey && e.shiftKey && e.key === 'J') {
-                e.preventDefault();
-                alert("Developer Tools ni ochish cheklangan!");
-            }
-
-            // Ctrl+Shift+C (Element Inspect)
-            if (e.ctrlKey && e.shiftKey && e.key === 'C') {
-                e.preventDefault();
-                alert("Developer Tools ni ochish cheklangan!");
-            }
-        });
-
-        document.addEventListener('contextmenu', function (e) {
-            e.preventDefault();
-            alert("Manba kodini ko‘rish cheklangan!");
-        });
+        $('#loading').addClass('d-none')
+      })
     </script>
-</body>
-
+  </body>
 </html>
