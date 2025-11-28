@@ -498,7 +498,7 @@
         "kind": 2,
         "importPath": "myapp.views",
         "description": "myapp.views",
-        "peekOfCode": "def gpt_align(request):\n    if request.method != \"POST\":\n        return JsonResponse({\"error\": \"Only POST allowed\"}, status=400)\n    english = request.POST.get(\"english\", \"\")\n    uzbek = request.POST.get(\"uzbek\", \"\")\n    prompt = request.POST.get(\"prompt\", \"\")\n    # Token selection\n    token_obj = get_least_used_token()\n    if not token_obj:\n        return JsonResponse({\"error\": \"No active tokens\"}, status=500)",
+        "peekOfCode": "def gpt_align(request):\n    if request.method != \"POST\":\n        return JsonResponse({\"error\": \"Only POST allowed\"}, status=400)\n    english = request.POST.get(\"english\", \"\")\n    uzbek = request.POST.get(\"uzbek\", \"\")\n    align_type = request.POST.get(\"type\", \"sentence\")  # sentence | paragraph\n    token_obj = get_least_used_token()\n    if not token_obj:\n        return JsonResponse({\"error\": \"No active tokens\"}, status=500)\n    openai.api_key = token_obj.token",
         "detail": "myapp.views",
         "documentation": {}
     },

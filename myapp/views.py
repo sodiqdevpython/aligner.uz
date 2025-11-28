@@ -79,27 +79,59 @@ def gpt_align(request):
 
     english = request.POST.get("english", "")
     uzbek = request.POST.get("uzbek", "")
-    prompt = request.POST.get("prompt", "")
+    align_type = request.POST.get("type", "sentence")  # sentence | paragraph
 
-    # Token selection
     token_obj = get_least_used_token()
     if not token_obj:
         return JsonResponse({"error": "No active tokens"}, status=500)
 
     openai.api_key = token_obj.token
 
+    prompt = f"""
+You are an Uzbek-English bilingual alignment expert.
+
+Your job:
+1) Segment both English and Uzbek texts based on alignment type: "{align_type}".
+2) Align segments so each English part matches its Uzbek counterpart.
+3) For each alignment return:
+   - english
+   - uzbek
+   - is_match (true/false)
+   - similarity_score (0–100)
+
+IMPORTANT:
+• You must segment BOTH languages yourself.
+• You must align them yourself.
+• You must return ONLY a valid JSON array.
+
+Example output:
+[
+  {{
+    "english": "...",
+    "uzbek": "...",
+    "is_match": true,
+    "similarity_score": 95
+  }},
+  ...
+]
+
+### English text:
+{english}
+
+### Uzbek text:
+{uzbek}
+"""
+
     try:
         response = openai.chat.completions.create(
-            model="gpt-4o-mini",
+            model="gpt-5-nano",
             messages=[{"role": "user", "content": prompt}],
-            temperature=0.2
         )
 
         raw = response.choices[0].message.content
-
         cleaned = cleanup_json(raw)
 
-        # Update usage
+        # Update usage counter
         token_obj.usage_count += 1
         token_obj.save()
 
@@ -107,3 +139,7 @@ def gpt_align(request):
 
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=500)
+
+
+
+

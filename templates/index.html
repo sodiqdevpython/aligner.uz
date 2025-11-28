@@ -4,7 +4,18 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>O'zbek-Ingliz Aligner — GPT bilan moslashtirish</title>
+    <meta
+      name="google-site-verification"
+      content="9O8PfyVsuurYJEE3pkewVAwI_F1kXWDqcR5-Vl7AswA"
+    />
+    <link rel="icon" href="{% static 'images/favicon.ico' %}" />
+    <script
+      async
+      src="https://www.googletagmanager.com/gtag/js?id=G-EJNWG40NH5"
+    ></script>
+    <script src="{% static 'gtag.js' %}"></script>
+    <script src="{% static 'index.js' %}"></script>
+    <title>O'zbek-Ingliz "Aligner" Dasturi</title>
 
     <link
       rel="stylesheet"
@@ -38,10 +49,68 @@
         background-color: #f8d7da !important;
       }
 
-      .loading {
-        text-align: center;
+      #loading {
+        display: none;
         font-size: 18px;
-        padding: 10px;
+        text-align: center;
+        margin-top: 20px;
+      }
+
+      .ai-loader {
+        display: none;
+        text-align: center;
+        margin-top: 20px;
+        padding: 20px;
+      }
+
+      .pulse {
+        width: 30px;
+        height: 30px;
+        margin: 0 auto 10px auto;
+        background: #4caf50;
+        border-radius: 50%;
+        animation: pulseAnim 1.5s infinite ease-in-out;
+      }
+
+      @keyframes pulseAnim {
+        0% {
+          transform: scale(0.9);
+          opacity: 0.7;
+        }
+        50% {
+          transform: scale(1.2);
+          opacity: 1;
+        }
+        100% {
+          transform: scale(0.9);
+          opacity: 0.7;
+        }
+      }
+
+      .loading-text {
+        font-size: 18px;
+        font-weight: bold;
+        color: #333;
+      }
+
+      .dots::after {
+        content: '';
+        animation: dotsAnim 1.5s infinite;
+      }
+
+      @keyframes dotsAnim {
+        0% {
+          content: '';
+        }
+        33% {
+          content: '.';
+        }
+        66% {
+          content: '..';
+        }
+        100% {
+          content: '...';
+        }
       }
     </style>
 
@@ -51,20 +120,10 @@
 
   <body>
     <div class="container">
-      <h2 class="text-center mb-3">GPT asosidagi O'zbek-Ingliz Aligner</h2>
-      <p class="text-center text-muted">
-        Gap yoki abzast bo‘yicha moslikni tekshirib beradi
-      </p>
+      <h2 class="text-center mb-3">Ingliz-O'zbek "Aligner" dasturi</h2>
 
       <!-- English -->
-      <label class="form-label fw-bold">Inglizcha fayl:</label>
-      <input
-        type="file"
-        class="form-control"
-        id="englishFileInput"
-        accept=".txt,.docx"
-        onchange="loadFile('englishFileInput','englishText')"
-      />
+      <label class="form-label fw-bold">Inglizcha matn:</label>
       <textarea
         id="englishText"
         class="form-control mt-2"
@@ -72,14 +131,7 @@
       ></textarea>
 
       <!-- Uzbek -->
-      <label class="form-label fw-bold mt-3">O'zbekcha fayl:</label>
-      <input
-        type="file"
-        class="form-control"
-        id="uzbekFileInput"
-        accept=".txt,.docx"
-        onchange="loadFile('uzbekFileInput','uzbekText')"
-      />
+      <label class="form-label fw-bold mt-3">O'zbekcha matn:</label>
       <textarea
         id="uzbekText"
         class="form-control mt-2"
@@ -93,9 +145,16 @@
         <option value="paragraph">Abzast bo'yicha</option>
       </select>
 
-      <button id="alignButton" class="btn btn-success btn-lg mt-3">
+      <button id="alignButton" class="btn btn-success btn-lg mt-3 w-100">
         Moslashtirish
       </button>
+
+      <div id="loading" class="ai-loader">
+        <div class="pulse"></div>
+        <div class="loading-text">
+          AI tahlil qilmoqda<span class="dots"></span>
+        </div>
+      </div>
 
       <h3 class="text-center mt-4">Natijalar</h3>
       <table class="table table-bordered mt-3">
@@ -110,64 +169,11 @@
     </div>
 
     <script>
-      /* ===== File loader ===== */
-      function loadFile(fileInputId, outputId) {
-        const file = document.getElementById(fileInputId).files[0]
-        const reader = new FileReader()
-        const output = document.getElementById(outputId)
-
-        if (!file) return
-
-        if (file.name.endsWith('.txt')) {
-          reader.onload = (e) => (output.value = e.target.result)
-          reader.readAsText(file)
-        } else if (file.name.endsWith('.docx')) {
-          reader.onload = (e) =>
-            mammoth
-              .extractRawText({ arrayBuffer: e.target.result })
-              .then((result) => (output.value = result.value))
-          reader.readAsArrayBuffer(file)
-        }
-      }
-
-      /* ===== Sentence splitter ===== */
-      function splitSentences(text) {
-        return text.split(/(?<=\.|\!|\?)\s+/).filter((t) => t.trim().length > 0)
-      }
-
-      function splitParagraphs(text) {
-        return text.split(/\n\s*\n/).filter((t) => t.trim().length > 0)
-      }
-
-      /* ===== GPT Proxy Call ===== */
-      function askGPT(english, uzbek) {
-        const prompt = `
-You are a bilingual Uzbek-English alignment expert. Compare the following:
-
-English: "${english}"
-Uzbek: "${uzbek}"
-
-Your task:
-1. Analyze semantic similarity.
-2. Determine if they match in meaning.
-3. Rate similarity 0–100.
-4. If mismatch, explain why.
-
-Respond ONLY in valid JSON:
-
-{
-  "english": "<clean English>",
-  "uzbek": "<clean Uzbek>",
-  "is_match": true/false,
-  "similarity_score": 0-100,
-  "comment": "<short explanation>"
-}
-        `
-
+      function ask(english, uzbek, type) {
         const formData = new FormData()
         formData.append('english', english)
         formData.append('uzbek', uzbek)
-        formData.append('prompt', prompt)
+        formData.append('type', type)
 
         return fetch('/gpt-align/', {
           method: 'POST',
@@ -176,15 +182,13 @@ Respond ONLY in valid JSON:
           .then((res) => res.json())
           .then((data) => {
             if (data.error) {
-              console.error(data.error)
-              alert('GPT xato qaytardi: ' + data.error)
+              alert('xato: ' + data.error)
               return null
             }
             return JSON.parse(data.result)
           })
       }
 
-      /* ===== Main function ===== */
       $('#alignButton').click(async function () {
         const englishText = $('#englishText').val()
         const uzbekText = $('#uzbekText').val()
@@ -195,43 +199,28 @@ Respond ONLY in valid JSON:
           return
         }
 
-        let englishParts =
-          type === 'sentence'
-            ? splitSentences(englishText)
-            : splitParagraphs(englishText)
-        let uzbekParts =
-          type === 'sentence'
-            ? splitSentences(uzbekText)
-            : splitParagraphs(uzbekText)
-
-        if (englishParts.length !== uzbekParts.length) {
-          alert("Inglizcha va O'zbekcha segmentlar soni teng emas!")
-          return
-        }
-
         $('#resultsTable').empty()
-        $('#loading').removeClass('d-none')
+        $('#loading').show()
 
-        for (let i = 0; i < englishParts.length; i++) {
-          let result = await askGPT(englishParts[i], uzbekParts[i])
+        let results = await ask(englishText, uzbekText, type)
 
-          let cssClass = result.is_match ? 'match' : 'nomatch'
+        $('#loading').hide()
+
+        if (!results) return
+
+        results.forEach((row) => {
+          let cssClass = row.is_match ? 'match' : 'nomatch'
 
           $('#resultsTable').append(`
-                <tr class="${cssClass}">
-                    <td>
-                        <b>${result.english}</b>
-                        <br><small>Score: ${result.similarity_score}%</small>
-                    </td>
-                    <td>
-                        ${result.uzbek}
-                        <br><small>${result.comment}</small>
-                    </td>
-                </tr>
-            `)
-        }
-
-        $('#loading').addClass('d-none')
+            <tr class="${cssClass}">
+                <td>
+                    <b>${row.english}</b>
+                    <br><small>Score: ${row.similarity_score}%</small>
+                </td>
+                <td>${row.uzbek}</td>
+            </tr>
+        `)
+        })
       })
     </script>
   </body>
