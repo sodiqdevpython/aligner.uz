@@ -112,6 +112,19 @@
           content: '...';
         }
       }
+
+      .char-counter {
+        text-align: right;
+        font-size: 13px;
+        color: #555;
+        margin-top: 5px;
+      }
+      .char-counter.warning {
+        color: #d58512;
+      }
+      .char-counter.danger {
+        color: #c9302c;
+      }
     </style>
 
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
@@ -130,6 +143,7 @@
         placeholder="Inglizcha matn..."
         maxlength="1500"
       ></textarea>
+      <div class="char-counter" id="engCounter">0 / 1500</div>
 
       <!-- Uzbek -->
       <label class="form-label fw-bold mt-3">O'zbekcha matn:</label>
@@ -139,7 +153,7 @@
         placeholder="O'zbekcha matn..."
         maxlength="1500"
       ></textarea>
-
+      <div class="char-counter" id="uzbCounter">0 / 1500</div>
       <!-- Mode -->
       <label class="form-label fw-bold mt-3">Moslashtirish turi:</label>
       <select id="alignmentType" class="form-select">
@@ -224,6 +238,33 @@
         `)
         })
       })
+
+      function updateCounter(textareaId, counterId, max) {
+        const text = $(textareaId).val().length
+        const counter = $(counterId)
+
+        counter.text(text + ' / ' + max)
+
+        counter.removeClass('warning danger')
+
+        if (text >= max) {
+          counter.addClass('danger')
+        } else if (text >= max * 0.9) {
+          counter.addClass('warning')
+        }
+      }
+
+      $('#englishText').on('input', function () {
+        updateCounter('#englishText', '#engCounter', 1500)
+      })
+
+      $('#uzbekText').on('input', function () {
+        updateCounter('#uzbekText', '#uzbCounter', 1500)
+      })
+
+      // Boshlang‘ich 0/1500 ko‘rsatish
+      updateCounter('#englishText', '#engCounter', 1500)
+      updateCounter('#uzbekText', '#uzbCounter', 1500)
     </script>
   </body>
 </html>
